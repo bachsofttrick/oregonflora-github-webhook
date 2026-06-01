@@ -1,22 +1,33 @@
 <?php
 
+// ─── Load .env ────────────────────────────────────────────────────────────────
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        if ($line[0] === '#') continue;
+        [$key, $val] = explode('=', $line, 2);
+        $_ENV[trim($key)] = trim($val);
+    }
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
-define('SECRET',      'f59f6536d7f962e9a3844502a2d4ddde93146fb343865cdbc077ffbebe1cd473');   // Must match the secret in GitHub
-define('BRANCH',      'refs/heads/main');        // Branch to react to
-define('LOG_FILE',    __DIR__ . '/webhook.log'); // Set to '' to disable logging
-define('DEPLOY_CMD',  'ls'); // Command to run on push
+define('SECRET',      !empty($_ENV['SECRET'])      ? $_ENV['SECRET'] : '');
+define('BRANCH',      !empty($_ENV['BRANCH'])      ? $_ENV['BRANCH'] : 'refs/heads/main');
+define('LOG_FOLDER',  !empty($_ENV['LOG_FOLDER'])  ? $_ENV['LOG_FOLDER'] : __DIR__);
+define('DEPLOY_CMD',  !empty($_ENV['DEPLOY_CMD'])  ? $_ENV['DEPLOY_CMD'] : '');
 
 // ─── Slack Config ─────────────────────────────────────────────────────────────
-define('SLACK_WEBHOOK_URL', 'https://hooks.slack.com/services/XXX/YYY/ZZZ'); // Incoming Webhook URL
-define('SLACK_CHANNEL',     '#deployments');  // Channel to post in (optional, can be set in Slack)
-define('SLACK_USERNAME',    'Deploy Bot');    // Display name
-define('SLACK_ICON',        ':rocket:');      // Emoji icon
+define('SLACK_WEBHOOK_URL', !empty($_ENV['SLACK_WEBHOOK_URL']) ? $_ENV['SLACK_WEBHOOK_URL'] : '');
+define('SLACK_CHANNEL',     !empty($_ENV['SLACK_CHANNEL'])     ? $_ENV['SLACK_CHANNEL'] : '');
+define('SLACK_USERNAME',    !empty($_ENV['SLACK_USERNAME'])    ? $_ENV['SLACK_USERNAME'] : 'Deploy Bot');
+define('SLACK_ICON',        !empty($_ENV['SLACK_ICON'])        ? $_ENV['SLACK_ICON'] : ':rocket:');
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function log_msg(string $msg): void {
-    if (!LOG_FILE) return;
+    if (!LOG_FOLDER) return;
+    $logFile = LOG_FOLDER . '/webhook.log';
     $line = '[' . date('Y-m-d H:i:s') . '] ' . $msg . PHP_EOL;
-    file_put_contents(LOG_FILE, $line, FILE_APPEND | LOCK_EX);
+    file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
 }
 
 function abort(int $code, string $msg): never {
@@ -118,11 +129,10 @@ function notify_slack(string $text, bool $success = true, array $fields = []): v
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 5,
     ]);
-    $res = curl_exec($ch);
+    curl_exec($ch);
     if (curl_errno($ch)) {
         log_msg('Slack notify error: ' . curl_error($ch));
     }
-    curl_close($ch);
 }
 
 // ─── 8. Respond ──────────────────────────────────────────────────────────────
