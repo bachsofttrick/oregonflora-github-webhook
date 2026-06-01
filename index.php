@@ -145,3 +145,4 @@ echo json_encode([
     'pusher'  => $pusher,
     'message' => $commitMsg,
 ]);
+?>
