@@ -8,11 +8,11 @@ else
     exit 1
 fi
 
-echo "Changing to build directory: $BUILD_DIR"
 cd $BUILD_DIR
 
 # git diff --quiet checks unstaged changes
 # git diff --cached --quiet checks staged ones
+# The --quiet flag suppresses all output, only shows exit code: 1 for existing uncommitted changes
 STASHED=0
 if ! git diff --quiet || ! git diff --cached --quiet; then
     echo "Uncommitted changes detected, stashing..."
@@ -31,4 +31,4 @@ if [ $STASHED -eq 1 ]; then
 fi
 
 echo "Running build..."
-npm run build
+npm run build &> /dev/null
