@@ -21,7 +21,7 @@ build_project() {
     local STASHED=0
     if ! git diff --quiet || ! git diff --cached --quiet; then
         echo "Uncommitted changes detected, stashing..."
-        git stash
+        git stash --quiet
         STASHED=1
     else
         echo "No uncommitted changes, skipping stash"
@@ -32,7 +32,7 @@ build_project() {
 
     if [ $STASHED -eq 1 ]; then
         echo "Restoring stashed changes..."
-        git stash pop
+        git stash pop --quiet
     fi
 
     echo "Running build..."
