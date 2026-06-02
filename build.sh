@@ -39,10 +39,12 @@ build_project() {
     npm run build &> /dev/null
 }
 
+echo "Building for $BUILD_DIR..."
 build_project "$BUILD_DIR"
 
 # -n confirms the variable $BUILD_DIR2 is set and non-empty
 # -d confirms the path exists
 if [ -n "$BUILD_DIR2" ] && [ -d "$BUILD_DIR2" ]; then
+    echo "Building for $BUILD_DIR2..."
     build_project "$BUILD_DIR2"
 fi
