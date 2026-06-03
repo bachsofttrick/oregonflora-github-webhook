@@ -1,4 +1,4 @@
-# OregonFlora Deploy Pipeline
+# OregonFlora CI/CD Pipeline
 This is the customized CI/CD pipeline for OregonFlora. Whenever there is a push to the Github repo, it will automatically build the OregonFlora and:
 - Save deployment result to a log
 - Send a message to Slack channel
