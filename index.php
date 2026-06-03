@@ -15,12 +15,9 @@ define('SECRET',      !empty($_ENV['SECRET'])      ? $_ENV['SECRET'] : '');
 define('BRANCH',      !empty($_ENV['BRANCH'])      ? $_ENV['BRANCH'] : 'refs/heads/main');
 define('LOG_FOLDER',  !empty($_ENV['LOG_FOLDER'])  ? $_ENV['LOG_FOLDER'] : __DIR__);
 define('DEPLOY_CMD',  !empty($_ENV['DEPLOY_CMD'])  ? $_ENV['DEPLOY_CMD'] : '');
-
-// ─── Slack Config ─────────────────────────────────────────────────────────────
 define('SLACK_WEBHOOK_URL', !empty($_ENV['SLACK_WEBHOOK_URL']) ? $_ENV['SLACK_WEBHOOK_URL'] : '');
-define('SLACK_CHANNEL',     !empty($_ENV['SLACK_CHANNEL'])     ? $_ENV['SLACK_CHANNEL'] : '');
-define('SLACK_USERNAME',    !empty($_ENV['SLACK_USERNAME'])    ? $_ENV['SLACK_USERNAME'] : 'Deploy Bot');
-define('SLACK_ICON',        !empty($_ENV['SLACK_ICON'])        ? $_ENV['SLACK_ICON'] : ':rocket:');
+
+$branch_built_to_msg = BRANCH === 'refs/heads/main' ? 'production' : 'development';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function log_msg(string $msg): void {
@@ -114,14 +111,14 @@ if (DEPLOY_CMD) {
     log_msg("Deploy output:\n$outputStr");
 
     if ($exitCode !== 0) {
-        $msg = "Deploy failed (exit $exitCode):\n$outputStr";
+        $msg = "Deploy at $branch_built_to_msg failed (exit $exitCode):\n$outputStr";
         notify_slack($msg);
         abort(500, $msg);
     }
 }
 
 // ─── 7. Respond ──────────────────────────────────────────────────────────────
-$msg = "Deploy successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg";
+$msg = "Deploy at $branch_built_to_msg successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg";
 http_response_code(200);
 notify_slack($msg);
 log_msg($msg);
