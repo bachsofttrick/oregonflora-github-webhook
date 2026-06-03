@@ -111,14 +111,14 @@ if (DEPLOY_CMD) {
     log_msg("Deploy output:\n$outputStr");
 
     if ($exitCode !== 0) {
-        $msg = "Deploy at $branch_built_to_msg failed (exit $exitCode):\n$outputStr";
+        $msg = "Deploy on $branch_built_to_msg server failed (exit $exitCode):\n$outputStr";
         notify_slack($msg);
         abort(500, $msg);
     }
 }
 
 // ─── 7. Respond ──────────────────────────────────────────────────────────────
-$msg = "Deploy at $branch_built_to_msg successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg";
+$msg = "Deploy on $branch_built_to_msg server successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg";
 http_response_code(200);
 notify_slack($msg);
 log_msg($msg);
