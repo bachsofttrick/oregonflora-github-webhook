@@ -39,12 +39,15 @@ build_project() {
     npm run build &> /dev/null
 }
 
-echo "Building for $BUILD_DIR..."
-build_project "$BUILD_DIR"
-
-# -n confirms the variable $BUILD_DIR2 is set and non-empty
-# -d confirms the path exists
-if [ -n "$BUILD_DIR2" ] && [ -d "$BUILD_DIR2" ]; then
-    echo "Building for $BUILD_DIR2..."
-    build_project "$BUILD_DIR2"
-fi
+# Detect all BUILD_DIR* variables (BUILD_DIR, BUILD_DIR2, BUILD_DIR3, etc)
+# compgen -v lists all variables, grep filters for BUILD_DIR*, sort ensures consistent order
+# ${!var} gets the value of the variable name stored in $var (indirect variable expansion)
+for var in $(compgen -v | grep '^BUILD_DIR' | sort); do
+    dir="${!var}"
+    if [ -n "$dir" ] && [ -d "$dir" ]; then
+        echo "Building for $var..."
+        build_project "$dir"
+    fi
+done
+unset var
+unset dir

@@ -30,15 +30,36 @@ function log_msg(string $msg): void {
     file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
 }
 
-function abort(int $code, string $msg): never {
+function abort(int $code, string $msg, bool $allowLog = true): never {
     http_response_code($code);
-    log_msg("ABORT $code: $msg");
+    if ($allowLog) log_msg("ABORT $code: $msg");
     exit($msg);
+}
+
+function notify_slack(string $text): void {
+    if (!SLACK_WEBHOOK_URL) return;
+
+    $body = json_encode([
+        'text'    => $text
+    ]);
+
+    $ch = curl_init(SLACK_WEBHOOK_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $body,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 5,
+    ]);
+    curl_exec($ch);
+    if (curl_errno($ch)) {
+        log_msg('Slack notify error: ' . curl_error($ch));
+    }
 }
 
 // ─── 1. Only accept POST ──────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    abort(405, 'Method Not Allowed');
+    abort(405, 'Method Not Allowed', false);
 }
 
 // ─── 2. Verify the GitHub signature ──────────────────────────────────────────
@@ -59,8 +80,7 @@ if (!hash_equals($expected, $sigHeader)) {
 $event = $_SERVER['HTTP_X_GITHUB_EVENT'] ?? '';
 
 if ($event !== 'push') {
-    http_response_code(200);
-    exit("Ignored event: $event");
+    abort(200, "Ignored event: $event", false);
 }
 
 // ─── 4. Parse payload ────────────────────────────────────────────────────────
@@ -80,9 +100,7 @@ log_msg("Push received — repo: $repoName | ref: $ref | pusher: $pusher | sha: 
 
 // ─── 5. Filter by branch ─────────────────────────────────────────────────────
 if ($ref !== BRANCH) {
-    http_response_code(200);
-    log_msg("Ignored ref: $ref (watching " . BRANCH . ")");
-    exit("Ignored ref: $ref");
+    abort(200, "Ignored ref: $ref");
 }
 
 // ─── 6. Run deploy command ────────────────────────────────────────────────────
@@ -96,48 +114,17 @@ if (DEPLOY_CMD) {
     log_msg("Deploy output:\n$outputStr");
 
     if ($exitCode !== 0) {
-        abort(500, "Deploy failed (exit $exitCode):\n$outputStr");
+        $msg = "Deploy failed (exit $exitCode):\n$outputStr";
+        notify_slack($msg);
+        abort(500, $msg);
     }
 }
 
-// ─── 7. Notify Slack ─────────────────────────────────────────────────────────
-function notify_slack(string $text, bool $success = true, array $fields = []): void {
-    if (!SLACK_WEBHOOK_URL) return;
-
-    $color = $success ? '#36a64f' : '#d9534f'; // green / red
-
-    $attachment = [
-        'color'    => $color,
-        'text'     => $text,
-        'fields'   => $fields,
-        'footer'   => 'GitHub Webhook',
-        'ts'       => time(),
-    ];
-
-    $body = json_encode([
-        'username'    => SLACK_USERNAME,
-        'icon_emoji'  => SLACK_ICON,
-        'channel'     => SLACK_CHANNEL,
-        'attachments' => [$attachment],
-    ]);
-
-    $ch = curl_init(SLACK_WEBHOOK_URL);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $body,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 5,
-    ]);
-    curl_exec($ch);
-    if (curl_errno($ch)) {
-        log_msg('Slack notify error: ' . curl_error($ch));
-    }
-}
-
-// ─── 8. Respond ──────────────────────────────────────────────────────────────
+// ─── 7. Respond ──────────────────────────────────────────────────────────────
+$msg = "Deploy successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg";
 http_response_code(200);
-log_msg("Deploy successful for commit: " . substr($headSha, 0, 7) . " — $commitMsg");
+notify_slack($msg);
+log_msg($msg);
 echo json_encode([
     'status'  => 'ok',
     'ref'     => $ref,

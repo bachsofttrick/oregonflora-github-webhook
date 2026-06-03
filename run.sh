@@ -1,3 +1,4 @@
 #!/bin/bash
+ACCOUNT=phanx
 
-sudo -u phanx ./build.sh 2>&1
+sudo -u $ACCOUNT ./build.sh 2>&1
