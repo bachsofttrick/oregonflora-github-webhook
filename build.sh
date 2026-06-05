@@ -53,7 +53,7 @@ build_project() {
 for var in $(compgen -v | grep '^BUILD_DIR' | sort); do
     dir="${!var}"
     if [ -n "$dir" ] && [ -d "$dir" ]; then
-        echo "Building for $var..."
+        echo "Building for $dir..."
         build_project "$dir"
     fi
 done
