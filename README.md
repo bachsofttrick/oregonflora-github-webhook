@@ -5,6 +5,12 @@ This is the customized CI/CD pipeline for OregonFlora. Whenever there is a push 
 
 ## Installation
 > Move `apache-site/autodeploy.conf` to `sites-available` of the Apache configuration folder. Adjust the conf as appropriated, then enable the site. 
+To run build using a different accoutnwith sudo, type `sudo visudo` and add:
+```
+# Allow www-data to run a specific build script for OregonFlora as phanx without password
+www-data ALL=(phanx) NOPASSWD: /srv/data/autodeploy/build.sh
+```
+You can replace `www-data` with any account that Apache uses.
 
 ## How it works
 1. GitHub webhook sends a POST request to this script whenever you push to the monitored branch.
