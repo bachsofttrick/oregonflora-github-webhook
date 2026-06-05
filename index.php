@@ -107,7 +107,7 @@ if (DEPLOY_CMD) {
     exec(DEPLOY_CMD, $output, $exitCode);
 
     $outputStr = implode("\n", $output);
-    log_msg("Deploy exit code: $exitCode");
+    log_msg("Deploy " . (!$exitCode ? 'successful' : 'failed'));
     log_msg("Deploy output:\n$outputStr");
 
     if ($exitCode !== 0) {
