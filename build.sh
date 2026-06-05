@@ -27,6 +27,9 @@ build_project() {
         echo "No uncommitted changes, skipping stash"
     fi
 
+    # Save current HEAD so we can compare after pulling to see what changed
+    local BEFORE_PULL=$(git rev-parse HEAD)
+
     echo "Pulling latest changes..."
     git pull --rebase
 
@@ -35,8 +38,13 @@ build_project() {
         git stash pop --quiet
     fi
 
-    echo "Running build..."
-    npm run build &> /dev/null
+    # Only build if the pull brought in changes to any .jsx file
+    if git diff --name-only "$BEFORE_PULL" HEAD | grep -q '\.jsx$'; then
+        echo "Running build..."
+        npm run build &> /dev/null
+    else
+        echo "No JSX files changed, skipping build"
+    fi
 }
 
 # Detect all BUILD_DIR* variables (BUILD_DIR, BUILD_DIR2, BUILD_DIR3, etc)
